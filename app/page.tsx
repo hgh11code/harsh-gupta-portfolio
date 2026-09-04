@@ -70,8 +70,11 @@ export default function Home() {
           </g>
           <g className="network-code">
             <text x="25" y="430">[ raw ]</text><text x="152" y="352">SQL</text>
+            <text x="76" y="276">PySpark</text><text x="214" y="138">NLP</text>
             <text x="325" y="84">01</text><text x="370" y="236">Σ</text>
-            <text x="493" y="334">pipe()</text><text x="604" y="225">ML</text>
+            <text x="438" y="502">TIME SERIES</text><text x="493" y="334">pipe()</text>
+            <text x="548" y="74">COMPUTER VISION</text><text x="604" y="225">ML</text>
+            <text x="604" y="447">DATABRICKS</text><text x="695" y="375">CLOUD</text>
             <text x="738" y="50">↗</text><text x="792" y="287">insight</text>
           </g>
         </svg>
@@ -158,7 +161,7 @@ export default function Home() {
       </div>
 
       <footer>
-        <div><p className="footer-name">Harsh Gupta</p><p>Data Scientist · Engineer · Analyst</p></div>
+        <div><p className="footer-name">Harsh Gupta</p><p>Data Scientist · Engineer · Analyst</p><p className="footer-credit">Built together with Codex.</p></div>
         <div className="footer-links" aria-label="Contact links"><a href="mailto:gupta059harsh@gmail.com" aria-label="Email Harsh Gupta"><MailIcon /></a><a href="https://www.linkedin.com/in/harsh-059-gupta" target="_blank" rel="noreferrer" aria-label="Harsh Gupta on LinkedIn"><LinkedInIcon /></a><a href="https://github.com/hgh11code" target="_blank" rel="noreferrer" aria-label="Harsh Gupta on GitHub"><GitHubIcon /></a></div>
         <p className="footer-location">Satna, India · 2026</p>
       </footer>

@@ -76,7 +76,7 @@ a { color: inherit; text-decoration: none; }
   left: -92px;
   width: min(76vw, 910px);
   height: auto;
-  opacity: 0.24;
+  opacity: 0.28;
   pointer-events: none;
 }
 .network-paths path {
@@ -285,6 +285,7 @@ footer {
 }
 footer p { margin: 2px 0; }
 .footer-name { color: var(--ink); font-family: var(--font-sans); font-size: 0.9rem; font-weight: 750; letter-spacing: 0; text-transform: none; }
+.footer-credit { margin-top: 8px; color: var(--blue); letter-spacing: 0; text-transform: none; }
 .footer-links { display: flex; gap: 8px; }
 .footer-links a { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--ink); transition: color 160ms ease, background 160ms ease; }
 .footer-links a:hover { color: white; background: var(--blue); border-color: var(--blue); }
@@ -306,7 +307,7 @@ footer p { margin: 2px 0; }
 @media (max-width: 640px) {
   .site-header, .hero, .content-section, footer { width: min(100% - 32px, 1240px); }
   .hero { padding-bottom: 64px; }
-  .hero-network { top: 96px; left: -180px; width: 760px; opacity: 0.18; }
+  .hero-network { top: 96px; left: -180px; width: 760px; opacity: 0.21; }
   h1 { font-size: clamp(4.7rem, 24vw, 7rem); }
   .summary { margin-top: 34px; }
   .link-bar { display: grid; grid-template-columns: 1fr 1fr; }
