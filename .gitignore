@@ -3,6 +3,8 @@
 # dependencies
 /node_modules
 /.pnpm-store
+/.vercel-cli
+/*.zip
 /.pnp
 .pnp.*
 .yarn/*
