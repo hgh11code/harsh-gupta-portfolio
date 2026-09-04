@@ -140,7 +140,7 @@ export default function Home() {
             </div>
             <div id="live-projects">
               <div className="subhead-row"><h3>Live projects</h3><span>{String(liveProjects.length).padStart(2, "0")}</span></div>
-              {liveProjects.length ? <div className="project-list">{liveProjects.map((project) => <a key={project.name} href={project.liveUrl} target="_blank" rel="noreferrer"><span>{project.name}</span><ArrowIcon /></a>)}</div> : <div className="empty-state"><span>02</span><p>Deployed work will appear here.</p></div>}
+              {liveProjects.length ? <div className="project-list">{liveProjects.map((project) => <a key={project.name} href={project.liveUrl} target={project.liveUrl.startsWith("http") ? "_blank" : undefined} rel={project.liveUrl.startsWith("http") ? "noreferrer" : undefined}><span>{project.name}</span><ArrowIcon /></a>)}</div> : <div className="empty-state"><span>02</span><p>Deployed work will appear here.</p></div>}
             </div>
           </div>
         </section>
@@ -149,7 +149,32 @@ export default function Home() {
           <SectionHeading number="05" title="Certificates" />
           <div className="section-body certificate-grid">
             {certificates.map((group, index) => (
-              <article key={group.category} className="certificate-group"><span className="item-index">0{index + 1}</span><h3>{group.category}</h3>{group.items.length ? <ul>{group.items.map((item) => <li key={item}>{item}</li>)}</ul> : <p className="muted">To be added.</p>}</article>
+              <article key={group.category} className="certificate-group">
+                <span className="item-index">0{index + 1}</span>
+                <h3>{group.category}</h3>
+                {group.items.length ? (
+                  <ul>
+                    {group.items.map((item) => (
+                      <li key={item.title}>
+                        {item.href ? (
+                          <a href={item.href} target="_blank" rel="noreferrer">
+                            <span className="certificate-copy">
+                              <strong>{item.title}</strong>
+                              <small>{[item.issuer, item.date, item.detail].filter(Boolean).join(" · ")}</small>
+                            </span>
+                            <ArrowIcon />
+                          </a>
+                        ) : (
+                          <span className="certificate-copy">
+                            <strong>{item.title}</strong>
+                            <small>{[item.issuer, item.date, item.detail].filter(Boolean).join(" · ")}</small>
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="muted">To be added.</p>}
+              </article>
             ))}
           </div>
         </section>

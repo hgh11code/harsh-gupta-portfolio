@@ -23,6 +23,7 @@
 # production
 /build
 /output
+/imports
 
 # misc
 .DS_Store

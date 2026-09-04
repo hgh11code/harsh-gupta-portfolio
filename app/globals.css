@@ -127,7 +127,7 @@ h1 span { color: var(--blue); }
 }
 .link-bar a + a { margin-left: 22px; }
 .link-bar a:hover { color: var(--blue); padding-left: 6px; }
-.link-bar svg, .project-list svg { width: 17px; height: 17px; }
+.link-bar svg, .project-list svg, .certificate-group svg { width: 17px; height: 17px; flex: 0 0 auto; }
 
 .roles-panel { padding-bottom: 1px; }
 .roles-label {
@@ -253,7 +253,20 @@ h3 { margin: 8px 0 14px; font-size: clamp(1.25rem, 2.2vw, 1.7rem); line-height: 
 .certificate-group:last-child { border-right: 0; }
 .certificate-group h3 { margin: 48px 0 20px; font-size: 1rem; }
 .certificate-group ul { margin: 0; padding: 0; list-style: none; }
-.certificate-group li { padding-top: 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+.certificate-group li { border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+.certificate-group li > a,
+.certificate-group li > .certificate-copy {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+}
+.certificate-group li > a { transition: color 160ms ease, padding 160ms ease; }
+.certificate-group li > a:hover { padding-left: 6px; color: var(--blue); }
+.certificate-copy { display: grid; gap: 3px; }
+.certificate-copy strong { color: var(--ink); font-size: 0.9rem; font-weight: 650; line-height: 1.4; }
+.certificate-copy small { color: var(--muted); font-family: var(--font-mono); font-size: 0.65rem; line-height: 1.5; }
+.certificate-group li > a:hover .certificate-copy strong { color: var(--blue); }
 .certificate-group .muted { margin-top: 18px; font-size: 0.9rem; }
 
 .skills-placeholder {
