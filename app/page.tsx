@@ -33,7 +33,12 @@ function MailIcon() {
 }
 
 function SectionHeading({ number, title }: { number: string; title: string }) {
-  return <div className="section-heading"><span>{number}</span><h2>{title}</h2><div aria-hidden="true" /></div>;
+  return (
+    <div className="section-heading">
+      <span>{number}</span><h2>{title}</h2><div aria-hidden="true" />
+      <figure className={`mini-harsh mini-harsh-${number}`} aria-hidden="true" />
+    </div>
+  );
 }
 
 export default function Home() {
@@ -47,6 +52,29 @@ export default function Home() {
       </header>
 
       <section className="hero" id="top">
+        <svg className="hero-network" viewBox="0 0 880 560" aria-hidden="true">
+          <g className="network-paths">
+            <path d="M42 393 164 316 274 382 393 251 510 298 627 186 815 250" />
+            <path d="M164 316 190 166 343 114 393 251 529 102 627 186 764 76" />
+            <path d="M274 382 420 456 510 298 687 409 815 250" />
+            <path d="M190 166 393 251 420 456" />
+          </g>
+          <g className="network-nodes">
+            <circle cx="42" cy="393" r="6" /><circle cx="164" cy="316" r="9" />
+            <circle cx="190" cy="166" r="6" /><circle cx="274" cy="382" r="6" />
+            <circle cx="343" cy="114" r="9" /><circle cx="393" cy="251" r="12" />
+            <circle cx="420" cy="456" r="6" /><circle cx="510" cy="298" r="8" />
+            <circle cx="529" cy="102" r="6" /><circle cx="627" cy="186" r="11" />
+            <circle cx="687" cy="409" r="7" /><circle cx="764" cy="76" r="6" />
+            <circle cx="815" cy="250" r="9" />
+          </g>
+          <g className="network-code">
+            <text x="25" y="430">[ raw ]</text><text x="152" y="352">SQL</text>
+            <text x="325" y="84">01</text><text x="370" y="236">Σ</text>
+            <text x="493" y="334">pipe()</text><text x="604" y="225">ML</text>
+            <text x="738" y="50">↗</text><text x="792" y="287">insight</text>
+          </g>
+        </svg>
         <div className="hero-copy">
           <p className="eyebrow">Satna, Madhya Pradesh, India</p>
           <h1>Harsh<br />Gupta<span>.</span></h1>
