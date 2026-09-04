@@ -48,8 +48,8 @@ export default function Home() {
 
       <section className="hero" id="top">
         <div className="hero-copy">
-          <p className="eyebrow"><span /> Satna, Madhya Pradesh, India</p>
-          <h1>Harsh<br /><em>Gupta.</em></h1>
+          <p className="eyebrow">Satna, Madhya Pradesh, India</p>
+          <h1>Harsh<br />Gupta<span>.</span></h1>
           <p className="summary">Curious about everything data — how it flows, what it reveals, and what we can build with it.</p>
           <div className="link-bar" aria-label="Profile links">
             {profileLinks.map((link) => (
@@ -60,10 +60,14 @@ export default function Home() {
           </div>
         </div>
 
-        <aside className="signal-card" aria-label="Current focus">
-          <div className="signal-top"><span>Current signal</span><span className="status-dot">Learning</span></div>
-          <div className="signal-visual" aria-hidden="true"><div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="core">DATA</div></div>
-          <div className="signal-footer"><p>Exploring systems that move data from raw signal to useful intelligence.</p><span>ML · CV · NLP · DATA ENGINEERING</span></div>
+        <aside className="roles-panel" aria-label="Professional roles">
+          <p className="roles-label">Working across</p>
+          <ol>
+            <li><span>01</span><strong>Data Scientist</strong></li>
+            <li><span>02</span><strong>Data Engineer</strong></li>
+            <li><span>03</span><strong>Data Analyst</strong></li>
+          </ol>
+          <p className="roles-note">From the first question<br />to the final decision.</p>
         </aside>
         <a className="scroll-cue" href="#about">Scroll to explore <span>↓</span></a>
       </section>
@@ -126,7 +130,7 @@ export default function Home() {
       </div>
 
       <footer>
-        <div><p className="footer-name">Harsh Gupta</p><p>Data Science & AI</p></div>
+        <div><p className="footer-name">Harsh Gupta</p><p>Data Scientist · Engineer · Analyst</p></div>
         <div className="footer-links" aria-label="Contact links"><a href="mailto:gupta059harsh@gmail.com" aria-label="Email Harsh Gupta"><MailIcon /></a><a href="https://www.linkedin.com/in/harsh-059-gupta" target="_blank" rel="noreferrer" aria-label="Harsh Gupta on LinkedIn"><LinkedInIcon /></a><a href="https://github.com/hgh11code" target="_blank" rel="noreferrer" aria-label="Harsh Gupta on GitHub"><GitHubIcon /></a></div>
         <p className="footer-location">Satna, India · 2026</p>
       </footer>

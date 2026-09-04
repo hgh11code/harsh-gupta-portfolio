@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Harsh Gupta — Data Science & AI",
-  description: "Portfolio of Harsh Gupta, a data science and AI student exploring machine learning, computer vision, NLP, and data engineering.",
+  title: "Harsh Gupta — Data Scientist, Engineer & Analyst",
+  description: "Portfolio of Harsh Gupta, working across data science, data engineering, and analytics with a focus on machine learning, computer vision, and NLP.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
