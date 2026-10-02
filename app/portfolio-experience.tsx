@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { certificates } from "@/data/certificates";
 import { liveProjects, projects } from "@/data/projects";
 import { connectionPoints, connectionsIntersect } from "@/lib/skill-connections";
+import { gestureAxis, swipeStep } from "@/lib/portfolio-gestures";
 
 const profileLinks = [
   { label: "LinkedIn", href: "https://www.linkedin.com/in/harsh-059-gupta" },
@@ -266,6 +267,8 @@ export default function PortfolioExperience() {
   const [dark, setDark] = useState(false);
   const [hashReady, setHashReady] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
+  const swipe = useRef<{id:number;x:number;y:number;axis:"x"|"y"|null;dx:number;width:number} | null>(null);
+  const wheelGesture = useRef({at:0,sum:0,turned:false});
   const angle = 360 / pages.length;
 
   const goToPage = useCallback((page: number) => {
@@ -326,17 +329,60 @@ export default function PortfolioExperience() {
     const scrollReader = (event: globalThis.WheelEvent) => {
       if (event.ctrlKey) return; // Preserve browser pinch-to-zoom.
       const area = stage.querySelector<HTMLElement>(".is-active [data-page-scroll]");
-      if (!area || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      if (Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.5) {
+        event.preventDefault();
+        if ((event.target as HTMLElement).closest(".skill-game")) return;
+        const now = performance.now();
+        const gesture = wheelGesture.current;
+        if (now - gesture.at > 220) { gesture.sum=0; gesture.turned=false; }
+        gesture.at=now;
+        gesture.sum += event.deltaX * (event.deltaMode === 1 ? 16 : 1);
+        if (!gesture.turned && Math.abs(gesture.sum) > 85) {
+          gesture.turned=true;
+          goToPage(activePage + (gesture.sum > 0 ? 1 : -1));
+        }
+        return;
+      }
+      if (!area) return;
       event.preventDefault();
       const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? area.clientHeight : 1;
       area.scrollTop += event.deltaY * scale;
     };
     stage.addEventListener("wheel", scrollReader, {passive:false});
     return () => stage.removeEventListener("wheel", scrollReader);
-  }, []);
+  }, [activePage,goToPage]);
+
+  const resetSwipe = () => {
+    swipe.current=null;
+    stageRef.current?.classList.remove("is-dragging");
+    stageRef.current?.style.setProperty("--drag-angle","0deg");
+  };
+  const startSwipe = (event:ReactPointerEvent<HTMLElement>) => {
+    if (!event.isPrimary || event.button !== 0 || (event.target as HTMLElement).closest("a,button,input,.skill-game")) return;
+    const width=event.currentTarget.querySelector(".book-page.is-active")?.getBoundingClientRect().width || 390;
+    swipe.current={id:event.pointerId,x:event.clientX,y:event.clientY,axis:null,dx:0,width};
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const moveSwipe = (event:ReactPointerEvent<HTMLElement>) => {
+    const current=swipe.current;
+    if (!current || current.id !== event.pointerId) return;
+    const dx=event.clientX-current.x, dy=event.clientY-current.y;
+    current.axis ??= gestureAxis(dx,dy);
+    if (current.axis !== "x") return;
+    current.dx=dx;
+    stageRef.current?.classList.add("is-dragging");
+    stageRef.current?.style.setProperty("--drag-angle",`${Math.max(-angle,Math.min(angle,dx/current.width*angle))}deg`);
+  };
+  const endSwipe = (event:ReactPointerEvent<HTMLElement>) => {
+    const current=swipe.current;
+    const step=current?.axis === "x" ? swipeStep(current.dx,current.width) : 0;
+    resetSwipe();
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (step) goToPage(activePage+step);
+  };
 
   const carouselStyle = {
-    transform: `translateZ(calc(var(--drum-radius) * -1)) rotateY(${-turn * angle}deg)`,
+    transform: `translateZ(calc(var(--drum-radius) * -1)) rotateY(calc(${-turn * angle}deg + var(--drag-angle, 0deg)))`,
   } as CSSProperties;
 
   return (
@@ -360,8 +406,16 @@ export default function PortfolioExperience() {
 
       <p className="sr-only" aria-live="polite">Now viewing {pages[activePage].label}</p>
 
-      <section ref={stageRef} className="drum-stage" aria-label="Rotating portfolio book">
+      <section ref={stageRef} className="drum-stage" aria-label="Rotating portfolio book" onPointerDown={startSwipe} onPointerMove={moveSwipe} onPointerUp={endSwipe} onPointerCancel={resetSwipe} onLostPointerCapture={resetSwipe}>
         <div className="drum-shadow" aria-hidden="true" />
+        <svg className="open-book-base" viewBox="0 0 1000 230" preserveAspectRatio="none" fill="none" aria-hidden="true">
+          <path d="M14 69Q252 23 500 103Q748 23 986 69L998 179Q747 137 500 221Q253 137 2 179Z" fill="var(--book-cover)" />
+          <path d="M23 55Q253 6 500 91Q747 6 977 55L984 162Q745 122 500 205Q255 122 16 162Z" fill="var(--paper-deep)" stroke="var(--line)" strokeWidth="2" />
+          <path d="M35 25Q265 0 500 74L500 190Q264 111 26 147Z" fill="var(--paper)" />
+          <path d="M965 25Q735 0 500 74L500 190Q736 111 974 147Z" fill="var(--paper)" />
+          <path d="M500 74V190M26 153Q267 118 495 196M974 153Q733 118 505 196M21 159Q267 126 493 201M979 159Q733 126 507 201" stroke="var(--line)" strokeWidth="2" />
+          <path d="M493 78Q482 144 495 191M507 78Q518 144 505 191" stroke="var(--line)" strokeWidth="3" opacity=".5" />
+        </svg>
         <div className="cylinder-body">
         <div className="page-drum" style={carouselStyle}>
           <article id="cover" className={`book-page book-page--cover${activePage === 0 ? " is-active" : ""}`} style={{ transform: "rotateY(0deg) translateZ(var(--drum-radius))" }} aria-hidden={activePage !== 0} inert={activePage !== 0}>
@@ -485,14 +539,14 @@ export default function PortfolioExperience() {
       </section>
 
       <div className="book-controls">
-        <label className="rotation-control"><span>Drag to explore <strong>{String(activePage+1).padStart(2,"0")} / 07 · {pages[activePage].label}</strong></span><input type="range" min="0" max={pages.length-1} step="1" value={activePage} onChange={event=>goToPage(Number(event.target.value))} aria-label="Rotate portfolio pages" aria-valuetext={`${activePage+1} of ${pages.length}: ${pages[activePage].label}`} /></label>
+        <p className="swipe-hint">Swipe to turn <span>·</span> Scroll to read <strong>{pages[activePage].label}</strong></p>
         <div className="progress-dots" aria-label="Page progress">
           {pages.map((page, index) => <button key={page.id} type="button" className={index === activePage ? "is-current" : ""} onClick={() => goToPage(index)} aria-label={`Go to ${page.label}`} />)}
         </div>
       </div>
 
       <footer className="book-footer">
-        <span>Scroll to read · Drag the slider to rotate</span>
+        <span>Swipe · Trackpad · Arrow keys</span>
         <span className="footer-credit">Designed with Harsh · Built with Codex</span>
         <div className="footer-links" aria-label="Contact links">
           <a href="mailto:gupta059harsh@gmail.com" aria-label="Email Harsh Gupta"><MailIcon /></a>
