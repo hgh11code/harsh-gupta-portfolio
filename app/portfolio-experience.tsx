@@ -4,6 +4,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent, WheelEvent } fro
 import { useCallback, useEffect, useRef, useState } from "react";
 import { certificates } from "@/data/certificates";
 import { liveProjects, projects } from "@/data/projects";
+import { connectionPoints, connectionsIntersect } from "@/lib/skill-connections";
 
 const profileLinks = [
   { label: "LinkedIn", href: "https://www.linkedin.com/in/harsh-059-gupta" },
@@ -51,6 +52,15 @@ const skillNodes: SkillNode[] = [
   { label: "Git", group: "Workflow", x: 77, y: 73 },
   { label: "Azure", group: "Platforms", x: 86, y: 36 },
   { label: "GitHub", group: "Workflow", x: 90, y: 82 },
+  { label: "Deep Learning", group: "Models", x: 12, y: 46 },
+  { label: "LLMs", group: "Models", x: 32, y: 12 },
+  { label: "AI Agents", group: "Models", x: 51, y: 10 },
+  { label: "Bioinformatics", group: "Models", x: 86, y: 10 },
+  { label: "Excel", group: "Data", x: 10, y: 89 },
+  { label: "Statistics", group: "Data", x: 48, y: 92 },
+  { label: "Cloud", group: "Platforms", x: 88, y: 57 },
+  { label: "Docker", group: "Workflow", x: 70, y: 93 },
+  { label: "MLflow", group: "Workflow", x: 30, y: 34 },
 ];
 
 const skillLinks = [
@@ -58,6 +68,8 @@ const skillLinks = [
   [3, 7], [4, 6], [5, 7], [5, 8], [6, 7], [6, 9], [7, 8], [7, 9],
   [8, 10], [8, 11], [9, 11], [9, 12], [10, 13], [11, 12], [11, 13],
   [12, 14], [13, 14],
+  [0, 15], [15, 16], [16, 17], [17, 18], [18, 13], [2, 19],
+  [19, 4], [6, 20], [20, 22], [22, 14], [13, 21], [21, 11], [23, 3], [23, 8],
 ] as const;
 
 function ArrowIcon({ direction = "up-right" }: { direction?: "up-right" | "left" | "right" }) {
@@ -122,7 +134,7 @@ function SkillConstellation({ compact = false }: { compact?: boolean }) {
     <div className={`skill-constellation${compact ? " skill-constellation--compact" : ""}`}>
       <svg className="skill-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         {skillLinks.map(([from, to]) => (
-          <line key={`${from}-${to}`} x1={skillNodes[from].x} y1={skillNodes[from].y} x2={skillNodes[to].x} y2={skillNodes[to].y} />
+          <line className={skillNodes[from].label === selected || skillNodes[to].label === selected ? "is-highlighted" : ""} key={`${from}-${to}`} x1={skillNodes[from].x} y1={skillNodes[from].y} x2={skillNodes[to].x} y2={skillNodes[to].y} />
         ))}
       </svg>
       {skillNodes.map((node) => (
@@ -160,29 +172,91 @@ const gameSkills = [
 function SkillGame() {
   const [chosen, setChosen] = useState<number | null>(null);
   const [pairs, setPairs] = useState<[number, number][]>([]);
-  const [message, setMessage] = useState("Pick two skills from the same colour family.");
-  const matched = new Set(pairs.flat());
-  const point = (index: number) => ({ x: 9 + (index % 4) * 27, y: 8 + Math.floor(index / 4) * 16.5 });
-  const choose = (index: number) => {
-    if (matched.has(index)) return;
-    if (chosen === index) { setChosen(null); return; }
-    if (chosen === null) { setChosen(index); setMessage(`${gameSkills[index][0]} selected. Find another ${gameSkills[index][1].toLowerCase()} skill.`); return; }
-    if (gameSkills[chosen][1] !== gameSkills[index][1]) {
-      setMessage("Different families. Try another dot of the same colour and symbol.");
+  const [message, setMessage] = useState("Tap two matching colours, or drag between them. Dots can have several connections.");
+  const [order, setOrder] = useState(() => [7, 18, 2, 12, 21, 4, 16, 9, 0, 23, 6, 14, 20, 11, 1, 19, 8, 15, 22, 3, 17, 10, 5, 13]);
+  const [preview, setPreview] = useState<{x:number;y:number;target:number|null} | null>(null);
+  const [narrow, setNarrow] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const board = useRef<HTMLDivElement>(null);
+  const gesture = useRef<{index:number;x:number;y:number;moved:boolean} | null>(null);
+  const suppressClick = useRef(false);
+  const connected = new Set(pairs.flat());
+  // Irregular, collision-safe positions; shuffling changes which skill occupies each spot.
+  useEffect(() => {
+    if (!board.current) return;
+    const observer = new ResizeObserver(([entry]) => setNarrow(entry.contentRect.width < 430));
+    observer.observe(board.current);
+    return () => observer.disconnect();
+  }, []);
+  const positions = narrow
+    ? [[12,5],[37,9],[64,3],[88,10],[9,22],[34,27],[61,19],[88,28],[14,41],[40,43],[65,37],[91,46],[9,58],[35,61],[61,54],[87,63],[14,75],[39,78],[66,71],[91,81],[9,92],[34,94],[60,88],[84,95]]
+    : [[7,10],[24,6],[42,14],[58,7],[76,13],[92,8],[10,37],[27,32],[44,41],[61,34],[79,39],[94,32],[6,65],[23,60],[40,69],[57,62],[74,68],[91,60],[10,89],[28,94],[46,87],[62,93],[79,88],[94,95]];
+  const point = (index: number) => { const [x,y] = positions[order.indexOf(index)]; return {x,y}; };
+  const connect = (from:number, to:number) => {
+    if (gameOver) return;
+    if (from === to) return;
+    if (gameSkills[from][1] !== gameSkills[to][1]) {
+      setChosen(to);
+      setMessage(`${gameSkills[to][0]} selected instead. Highlighted dots are available matches.`);
       return;
     }
-    setPairs([...pairs, [chosen, index]]);
+    if (pairs.some(([a,b]) => (a === from && b === to) || (a === to && b === from))) {
+      setMessage("Already connected. Pick another highlighted skill.");
+      return;
+    }
+    const next = [...pairs, [from,to] as [number,number]];
+    const crosses = pairs.some(([a,b]) => gameSkills[a][1] !== gameSkills[from][1] && connectionsIntersect(connectionPoints(point(from),point(to)),connectionPoints(point(a),point(b))));
+    setPairs(next);
     setChosen(null);
-    setMessage(pairs.length === 11 ? "All 12 connections made. Nicely connected!" : `${gameSkills[chosen][0]} + ${gameSkills[index][0]} connected.`);
+    if (crosses) {
+      setGameOver(true);
+      setMessage("Round over — that connection crossed a different colour. Restart to try a new network.");
+      return;
+    }
+    setMessage(new Set(next.flat()).size === gameSkills.length ? "Every skill is connected! Keep building your network, or shuffle for a fresh start." : `${gameSkills[from][0]} ↔ ${gameSkills[to][0]}. Keep connecting the network.`);
+  };
+  const choose = (index: number) => {
+    if (gameOver) return;
+    if (chosen === index) { setChosen(null); return; }
+    if (chosen === null) { setChosen(index); setMessage(`${gameSkills[index][0]} selected. Tap any highlighted ${gameSkills[index][1].toLowerCase()} dot.`); return; }
+    connect(chosen,index);
+  };
+  const targetAt = (x:number,y:number,from:number) => {
+    let closest:number|null = null;
+    let distance = 44;
+    board.current?.querySelectorAll<HTMLButtonElement>("[data-skill]").forEach(button => {
+      const index = Number(button.dataset.skill);
+      if (index === from || gameSkills[index][1] !== gameSkills[from][1]) return;
+      const rect = button.getBoundingClientRect();
+      const next = Math.hypot(x-(rect.left+rect.width/2),y-(rect.top+rect.height/2));
+      if (next < distance) { closest=index; distance=next; }
+    });
+    return closest;
+  };
+  const dragMove = (event:ReactPointerEvent<HTMLButtonElement>) => {
+    const current = gesture.current;
+    if (!current || !board.current) return;
+    if (Math.hypot(event.clientX-current.x,event.clientY-current.y)>6) current.moved=true;
+    if (!current.moved) return;
+    setChosen(current.index);
+    const rect=board.current.getBoundingClientRect();
+    const target=targetAt(event.clientX,event.clientY,current.index);
+    setPreview(target === null ? {x:(event.clientX-rect.left)/rect.width*100,y:(event.clientY-rect.top)/rect.height*100,target:null} : {...point(target),target});
+  };
+  const shuffle = () => {
+    const next = [...order];
+    for(let i=next.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [next[i],next[j]]=[next[j],next[i]]; }
+    setOrder(next); setPairs([]); setChosen(null); setPreview(null); setGameOver(false);
+    setMessage("Fresh network. Tap or drag between matching colours.");
   };
   const symbols = { Models: "○", Data: "◇", Platforms: "□", Workflow: "△" };
-  return <section className="skill-game" aria-label="Connect the skills game">
-    <div className="game-intro"><p>Skills & learning map<br /><span>Connect matching colours. Explore the stack.</span></p><button type="button" onClick={() => { setPairs([]); setChosen(null); setMessage("Pick two skills from the same colour family."); }}>Reset</button></div>
-    <div className="game-board">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">{pairs.map(([a,b]) => <line key={a} x1={point(a).x} y1={point(a).y} x2={point(b).x} y2={point(b).y} className={`pair-${gameSkills[a][1].toLowerCase()}`} />)}</svg>
-      {gameSkills.map(([label, group], index) => <button key={label} type="button" className={`game-dot pair-${group.toLowerCase()}${chosen === index ? " is-selected" : ""}${matched.has(index) ? " is-matched" : ""}`} style={{left:`${point(index).x}%`,top:`${point(index).y}%`}} aria-label={`${label}, ${group}${matched.has(index) ? ", connected" : ""}`} aria-pressed={chosen === index} aria-disabled={matched.has(index)} onClick={() => choose(index)}><span aria-hidden="true">{matched.has(index) ? "✓" : symbols[group]}</span><strong>{label}</strong></button>)}
+  return <section className="skill-game" aria-label="Connect the skills game" onPointerDown={event=>event.stopPropagation()} onPointerUp={event=>event.stopPropagation()} onKeyDown={event=>{ if(event.key === "Escape") {setChosen(null);setPreview(null);} event.stopPropagation(); }}>
+    <div className="game-intro"><p>Build a skill network<br /><span>Match colours. Don’t cross another colour’s line.</span></p><div className="game-actions"><button type="button" disabled={!pairs.length || gameOver} onClick={()=>{setPairs(pairs.slice(0,-1));setChosen(null);setMessage("Last connection undone.");}}>Undo</button><button type="button" onClick={shuffle}>{gameOver ? "Restart" : "Shuffle"}</button></div></div>
+    <div className="game-board" ref={board} inert={gameOver}>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">{pairs.map(([a,b],index) => <polyline key={`${a}-${b}`} points={connectionPoints(point(a),point(b)).map(p=>`${p.x},${p.y}`).join(" ")} className={`pair-${gameSkills[a][1].toLowerCase()}${gameOver && index === pairs.length-1 ? " crossing-line" : ""}`} />)}{chosen !== null && preview && <polyline className={`connection-preview pair-${gameSkills[chosen][1].toLowerCase()}`} points={connectionPoints(point(chosen),preview).map(p=>`${p.x},${p.y}`).join(" ")}/>}</svg>
+      {gameSkills.map(([label, group], index) => <button key={label} type="button" data-skill={index} className={`game-dot pair-${group.toLowerCase()}${chosen === index ? " is-selected" : ""}${connected.has(index) ? " is-connected" : ""}${chosen !== null && chosen !== index && gameSkills[chosen][1] === group ? " is-compatible" : ""}${chosen !== null && gameSkills[chosen][1] !== group ? " is-muted" : ""}${preview?.target === index ? " is-snap-target" : ""}`} style={{left:`${point(index).x}%`,top:`${point(index).y}%`}} aria-label={`${label}, ${group}`} aria-pressed={chosen === index} onPointerDown={event=>{if(event.button!==0)return; suppressClick.current=false;gesture.current={index,x:event.clientX,y:event.clientY,moved:false};event.currentTarget.setPointerCapture(event.pointerId);}} onPointerMove={dragMove} onPointerUp={event=>{const current=gesture.current;gesture.current=null;setPreview(null);if(current?.moved){suppressClick.current=true;const target=targetAt(event.clientX,event.clientY,current.index);if(target!==null)connect(current.index,target);else {setChosen(current.index);setMessage("Tap a highlighted dot to finish the connection.");}}}} onPointerCancel={()=>{gesture.current=null;setPreview(null);}} onClick={event=>{if(suppressClick.current && event.detail!==0){suppressClick.current=false;return;}choose(index);}}><span aria-hidden="true">{symbols[group]}</span><strong>{label}</strong></button>)}
     </div>
-    <div className="game-status"><strong>{pairs.length} / 12</strong><p role="status">{message}</p></div>
+    <div className={`game-status${gameOver ? " game-status--ended" : ""}`}><strong>{gameOver ? "Round over" : `${connected.size} / 24 skills`}<br />{pairs.length} links</strong><p role={gameOver ? "alert" : "status"}>{message}</p></div>
   </section>;
 }
 
