@@ -93,9 +93,6 @@ function PageHeading({ number, eyebrow, title }: { number: string; eyebrow: stri
 
 function MiniHarsh({ frame, message }: { frame: number; message: string }) {
   const [responding, setResponding] = useState(false);
-  const column = frame % 3;
-  const row = Math.floor(frame / 3);
-  const position = `${column * 50}% ${row * 100}%`;
 
   return (
     <button
@@ -104,8 +101,15 @@ function MiniHarsh({ frame, message }: { frame: number; message: string }) {
       onClick={() => setResponding((value) => !value)}
       aria-label={`Mini Harsh: ${message}`}
     >
-      <span className="mini-guide-bubble">{responding ? message : "tap me"}</span>
-      <span className="mini-guide-art" style={{ backgroundPosition: position }} aria-hidden="true" />
+      <svg className="mini-guide-drawing" viewBox="0 0 100 100" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M29 36c-5-23 42-30 42 0M31 25l-3-9 15 4 9-8 16 13" />
+        <path d="M31 34v13c0 23 37 23 37 0V33M31 38h15v11H31zm22 0h15v11H53zm-7 4h7" />
+        <path d={responding ? "M42 55q8 10 16 0" : frame % 2 ? "M43 57h13" : "M43 55q7 6 14 0"} />
+        <path d="M39 66l-9 8-4 22m34-30 9 8 5 22M39 68l11 10 10-10M50 78v17M15 96h72" />
+        <path className="guide-arm" d={frame % 2 ? "M66 76l13-10 6-19m-4 3 4-5 5 5" : "M33 76 20 64 12 66m2-3-4 3 3 5"} />
+        <path stroke="var(--blue)" d={frame === 4 ? "M37 81h24v14H37zm6 5h12" : "m43 85-4 3 4 3m14-6 4 3-4 3m-5-7-3 9"} />
+      </svg>
+      <span className="guide-caption"><small>MINI HARSH / {String(frame + 1).padStart(2, "0")}</small><span>{responding ? "Let’s explore this together." : message}</span></span>
     </button>
   );
 }
@@ -131,6 +135,7 @@ function SkillConstellation({ compact = false }: { compact?: boolean }) {
           onFocus={() => setSelected(node.label)}
           onClick={() => setSelected(node.label)}
           aria-pressed={selected === node.label}
+          aria-label={node.label}
         >
           <span aria-hidden="true" />
           <strong>{node.label}</strong>
@@ -145,6 +150,8 @@ function SkillConstellation({ compact = false }: { compact?: boolean }) {
 
 export default function PortfolioExperience() {
   const [activePage, setActivePage] = useState(0);
+  const [turn, setTurn] = useState(0);
+  const [dark, setDark] = useState(false);
   const shellRef = useRef<HTMLElement>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
   const lastWheel = useRef(0);
@@ -152,13 +159,21 @@ export default function PortfolioExperience() {
   const angle = 360 / pages.length;
 
   const goToPage = useCallback((page: number) => {
-    setActivePage((page + pages.length) % pages.length);
+    const next = ((page % pages.length) + pages.length) % pages.length;
+    setTurn((previous) => {
+      const current = ((previous % pages.length) + pages.length) % pages.length;
+      let delta = next - current;
+      if (delta > pages.length / 2) delta -= pages.length;
+      if (delta < -pages.length / 2) delta += pages.length;
+      return previous + delta;
+    });
+    setActivePage(next);
   }, []);
 
   useEffect(() => {
     const syncPageFromHash = () => {
       const pageFromHash = pages.findIndex((page) => `#${page.id}` === window.location.hash);
-      if (pageFromHash >= 0) setActivePage(pageFromHash);
+      if (pageFromHash >= 0) goToPage(pageFromHash);
     };
     const frame = window.requestAnimationFrame(syncPageFromHash);
     window.addEventListener("hashchange", syncPageFromHash);
@@ -166,7 +181,7 @@ export default function PortfolioExperience() {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("hashchange", syncPageFromHash);
     };
-  }, []);
+  }, [goToPage]);
 
   useEffect(() => {
     if (!hasMounted.current) {
@@ -178,6 +193,8 @@ export default function PortfolioExperience() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.target as HTMLElement).closest("input, textarea, select, [contenteditable=true]")) return;
+      if (["ArrowRight", "ArrowLeft", "PageDown", "PageUp", "Home", "End"].includes(event.key)) event.preventDefault();
       if (event.key === "ArrowRight" || event.key === "PageDown") goToPage(activePage + 1);
       if (event.key === "ArrowLeft" || event.key === "PageUp") goToPage(activePage - 1);
       if (event.key === "Home") goToPage(0);
@@ -192,7 +209,7 @@ export default function PortfolioExperience() {
     if (scrollArea) {
       const canScrollDown = scrollArea.scrollTop + scrollArea.clientHeight < scrollArea.scrollHeight - 2;
       const canScrollUp = scrollArea.scrollTop > 2;
-      if ((event.deltaY > 0 && canScrollDown) || (event.deltaY < 0 && canScrollUp)) return;
+      if (Math.abs(event.deltaY) >= Math.abs(event.deltaX) && (canScrollDown || canScrollUp)) return;
     }
     const dominantDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
     if (Math.abs(dominantDelta) < 18 || Date.now() - lastWheel.current < 520) return;
@@ -224,13 +241,13 @@ export default function PortfolioExperience() {
   };
 
   const carouselStyle = {
-    transform: `translateZ(calc(var(--drum-radius) * -1)) rotateY(${-activePage * angle}deg)`,
+    transform: `translateZ(calc(var(--drum-radius) * -1)) rotateY(${-turn * angle}deg)`,
   } as CSSProperties;
 
   return (
     <main
       ref={shellRef}
-      className="portfolio-shell"
+      className={`portfolio-shell${dark ? " theme-dark" : ""}`}
       onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -247,6 +264,7 @@ export default function PortfolioExperience() {
           ))}
         </nav>
         <div className="page-count" aria-label={`Page ${activePage + 1} of ${pages.length}`}>
+          <button className="theme-toggle" onClick={() => setDark(!dark)} aria-label={`Switch to ${dark ? "light" : "dark"} pages`} type="button">{dark ? "☀" : "☾"}</button>
           <strong>{String(activePage + 1).padStart(2, "0")}</strong><span>/ {String(pages.length).padStart(2, "0")}</span>
         </div>
       </header>
@@ -256,6 +274,8 @@ export default function PortfolioExperience() {
       <section className="drum-stage" aria-label="Rotating portfolio book">
         <div className="drum-shadow" aria-hidden="true" />
         <div className="page-drum" style={carouselStyle}>
+          <div className="drum-rim drum-rim--top" aria-hidden="true" />
+          <div className="drum-rim drum-rim--bottom" aria-hidden="true" />
           <article id="cover" className={`book-page book-page--cover${activePage === 0 ? " is-active" : ""}`} style={{ transform: "rotateY(0deg) translateZ(var(--drum-radius))" }} aria-hidden={activePage !== 0} inert={activePage !== 0}>
             <div className="paper-grain" aria-hidden="true" />
             <SkillConstellation compact />
@@ -366,7 +386,7 @@ export default function PortfolioExperience() {
           <article id="skills" className={`book-page${activePage === 6 ? " is-active" : ""}`} style={{ transform: `rotateY(${angle * 6}deg) translateZ(var(--drum-radius))` }} aria-hidden={activePage !== 6} inert={activePage !== 6}>
             <div className="paper-grain" aria-hidden="true" />
             <div className="page-scroll page-scroll--skills" data-page-scroll>
-              <PageHeading number="06" eyebrow="Skills map" title="One connected stack, not a list of logos." />
+              <PageHeading number="06" eyebrow="Skills map" title="A connected world of data." />
               <SkillConstellation />
               <div className="skill-legend" aria-label="Skill categories"><span><i className="models" />Models</span><span><i className="data" />Data</span><span><i className="platforms" />Platforms</span><span><i className="workflow" />Workflow</span></div>
             </div>

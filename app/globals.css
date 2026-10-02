@@ -650,3 +650,122 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .page-drum { transition-duration: .01ms; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 }
+
+/* A joined seven-leaf drum: apothem = leaf width / (2 tan(pi / 7)).
+   Keeping this relation at every breakpoint prevents spaces between leaves. */
+.portfolio-shell {
+  --page-width: min(58vw, 740px);
+  --page-height: min(64svh, 620px);
+  --drum-radius: calc(var(--page-width) * 1.0382614);
+  background: radial-gradient(ellipse at 50% 39%, #394659 0%, #18212e 48%, #0d121c 85%);
+}
+.portfolio-shell::before { background-size: 80px 80px; opacity: .45; }
+.portfolio-shell::after { box-shadow: inset 0 0 100px #0005; }
+.drum-stage { height: calc(100svh - 190px); min-height: 0; perspective: 2400px; perspective-origin: 50% 24%; }
+.page-drum { top: 46%; }
+.book-page, .book-page.is-active {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: linear-gradient(90deg, var(--paper-deep), var(--paper) 7%, var(--paper) 93%, var(--paper-deep));
+  -webkit-box-reflect: below 6px linear-gradient(transparent 68%, #0002);
+}
+.book-page::before { width: 1px; background: var(--line); mix-blend-mode: normal; }
+.book-page::after { inset: 0; width: auto; background: linear-gradient(90deg, #00000008, transparent 12%, transparent 88%, #00000008); }
+.book-page:not(.is-active) { filter: brightness(.78); }
+.drum-rim {
+  position: absolute;
+  left: 50%;
+  width: calc(var(--drum-radius) * 2.22);
+  height: calc(var(--drum-radius) * 2.22);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, var(--paper-deep) 65%, var(--line) 99%);
+  border: 2px solid var(--line);
+  transform: translate(-50%, -50%) rotateX(90deg);
+  pointer-events: none;
+}
+.drum-rim--top { top: 0; }
+.drum-rim--bottom { top: 100%; }
+.drum-shadow { width: 85vw; height: 90px; bottom: -4%; background: #0008; }
+.page-heading h2 { font-size: clamp(1.85rem, 2.8vw, 2.7rem); line-height: 1.13; max-width: 580px; }
+.page-heading { margin-bottom: 27px; }
+.page-scroll { height: calc(100% - 76px); padding: 34px 42px 30px; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.cover-copy { width: 75%; padding: 38px 44px; }
+.cover-copy h1 { font-size: clamp(4rem, 6.7vw, 6.4rem); }
+.cover-summary { max-width: 340px; }
+.cover-index { bottom: 25px; }
+.skill-constellation--compact { inset: 4% -2% 4% 40%; opacity: .56; }
+.skill-lines line { stroke: var(--line); stroke-width: 1; stroke-dasharray: none; }
+.skill-node { min-width: 30px; min-height: 36px; }
+.skill-node strong { background: var(--paper); }
+.skill-constellation--compact .skill-node strong { background: var(--paper); }
+.skill-constellation:not(.skill-constellation--compact) { min-height: 265px; }
+.mini-guide {
+  right: 30px; bottom: 0; left: 30px;
+  width: auto; height: 76px;
+  display: flex; align-items: center; gap: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--ink); text-align: left;
+  transform: none;
+  background: var(--paper);
+}
+.mini-guide-drawing { width: 69px; height: 69px; flex: 0 0 69px; transition: transform 220ms ease; }
+.guide-caption { display: grid; gap: 3px; }
+.guide-caption small { color: var(--muted); font: 9px var(--font-mono); letter-spacing: .12em; }
+.guide-caption > span { font-size: 12px; color: var(--muted); }
+.mini-guide:hover .mini-guide-drawing, .mini-guide.is-responding .mini-guide-drawing { transform: rotate(-4deg) translateY(-2px); }
+.mini-guide:hover .guide-arm { stroke: var(--blue); }
+.theme-toggle { display: grid; place-items: center; width: 38px; height: 38px; margin-right: 9px; border: 1px solid #ffffff35; border-radius: 50%; color: #e7eaf0; font-size: 22px; cursor: pointer; }
+.theme-dark {
+  color-scheme: dark;
+  --paper: #202936; --paper-deep: #18212d; --ink: #f0eee7;
+  --muted: #b0bac7; --line: #435064; --blue: #9bb6ff; --blue-soft: #2e3e59;
+  --model: #9bb6ff; --data: #83d8c6; --platform: #c6a6f6; --workflow: #f4b18a;
+}
+.theme-dark .paper-grain { opacity: .025; }
+.theme-dark .skill-constellation { background-color: var(--paper); }
+.theme-dark .skill-constellation--compact { background: none; }
+.theme-dark .live-project-card a { background: var(--paper-deep); }
+.theme-dark .profile-links a { border-color: var(--line); }
+.book-controls { margin-top: -12px; }
+.progress-dots { gap: 2px; }
+.progress-dots button { width: 28px; height: 34px; border-radius: 0; background: radial-gradient(circle, #67748c 2.5px, transparent 3px); }
+.progress-dots button.is-current { width: 28px; background: radial-gradient(circle, #a8bbf5 5px, transparent 5.5px); }
+.progress-dots button:hover { background: radial-gradient(circle, #a8bbf5 4px, transparent 4.5px); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+@media (max-width: 1050px) {
+  .portfolio-shell { --page-width: 66vw; }
+  .page-scroll { padding: 30px 32px; }
+}
+@media (max-width: 760px) {
+  .portfolio-shell { --page-width: calc(100vw - 64px); --page-height: calc(100svh - 218px); --drum-radius: calc(var(--page-width) * 1.0382614); }
+  .drum-stage { height: calc(100svh - 162px); min-height: 0; perspective: 1800px; perspective-origin: 50% 20%; }
+  .page-drum { top: 45%; }
+  .page-scroll { height: calc(100% - 66px); padding: 25px 23px; }
+  .page-heading h2 { font-size: clamp(1.6rem, 6.5vw, 2.3rem); }
+  .cover-copy { width: 100%; padding: 26px; justify-content: center; }
+  .cover-copy h1 { font-size: clamp(3.2rem, 16vw, 5.5rem); }
+  .cover-copy .eyebrow { max-width: 180px; }
+  .cover-summary { font-size: .88rem; }
+  .role-line { font-size: .68rem; margin-top: 18px; }
+  .profile-links { flex-wrap: wrap; }
+  .cover-index { display: none; }
+  .skill-constellation--compact { inset: 0 -15% 20% 35%; opacity: .24; }
+  .mini-guide { left: 23px; right: 23px; height: 66px; }
+  .mini-guide-drawing { width: 56px; height: 56px; flex-basis: 56px; }
+  .guide-caption > span { font-size: 10px; }
+  .guide-caption small { font-size: 8px; }
+  .book-controls { margin-top: -12px; }
+  .book-footer { bottom: 8px; }
+  .skill-node { min-width: 34px; min-height: 38px; }
+  .skill-node strong { display: none; }
+  .skill-node.is-active strong { display: block; }
+}
+@media (max-height: 600px) {
+  body { overflow-y: auto; }
+  .portfolio-shell { min-height: 660px; --page-height: 440px; }
+  .drum-stage { height: 498px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; }
+}

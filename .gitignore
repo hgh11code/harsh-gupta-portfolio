@@ -23,6 +23,7 @@
 # production
 /build
 /output
+/tmp
 /imports
 
 # misc

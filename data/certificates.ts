@@ -16,6 +16,13 @@ export const certificates: CertificateGroup[] = [
     category: "Courses",
     items: [
       {
+        title: "Microsoft Fabric Data Engineer — Professional Certificate",
+        issuer: "Microsoft · Coursera",
+        date: "Sep 2026",
+        detail: "4-course professional certificate",
+        href: "/certificates/microsoft-fabric-data-engineer.pdf",
+      },
+      {
         title: "Orchestrating Data Pipelines in Microsoft Fabric",
         issuer: "Microsoft · Coursera",
         date: "Sep 2026",
