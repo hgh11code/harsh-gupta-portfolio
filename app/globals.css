@@ -958,26 +958,26 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--blue); outline-
 .portfolio-shell { --page-width: min(54vw,680px); background: #18212e; }
 .upright-book { position: absolute; inset: 8px 10px; width: calc(100% - 20px); height: calc(100% - 16px); z-index: -1; pointer-events: none; }
 .portfolio-shell::before, .portfolio-shell::after { display: none; }
-.book-header { width: calc(100% - 90px); border-color: var(--line); }
+.book-header { width: calc(100% - max(90px, 8vw)); height: clamp(74px, 8svh, 100px); padding-top: clamp(0px, calc(5svh - 30px), 30px); border-color: var(--line); }
 .monogram, .page-count strong, .book-header nav button.is-current, .book-header nav button:hover { color: var(--ink); }
 .book-header nav button, .page-count span, .book-footer, .footer-credit { color: var(--muted); }
 .book-header nav button::after { background: var(--blue); }
 .theme-toggle { color: var(--ink); border-color: var(--line); }
 .cylinder-body { width: min(76vw,1050px); top: 47%; box-shadow: 0 18px 28px #0002; -webkit-box-reflect: below 16px linear-gradient(transparent 87%,#00008); }
 .drum-shadow { opacity: .16; bottom: 5%; }
-.book-controls { margin-top: 0; }
+.book-controls { margin-top: 0; transform: translateY(-6svh); }
 .swipe-hint, .swipe-hint > span { color: var(--muted); }
 .swipe-hint strong { color: var(--ink); }
 .book-controls .progress-dots button { background: radial-gradient(circle,var(--muted) 2.5px,transparent 3px); }
 .book-controls .progress-dots button.is-current { background: radial-gradient(circle,var(--blue) 5px,transparent 5.5px); }
-.book-footer { left: 45px; right: 45px; bottom: 30px; }
+.book-footer { left: max(45px, 4vw); right: max(45px, 4vw); bottom: max(30px, 6svh); }
 .footer-links a { border-color: var(--line); }
 @media (max-width:760px) {
   .portfolio-shell { --page-width: calc(100vw - 72px); }
   .upright-book { inset: 3px 2px; width: calc(100% - 4px); height: calc(100% - 6px); }
-  .book-header { width: calc(100% - 40px); }
+  .book-header { width: calc(100% - 40px); height: 60px; padding-top: 0; }
   .cylinder-body { width: calc(100vw - 44px); top: 44%; }
   .cover-copy { padding-left: 18px; padding-right: 18px; }
   .book-footer { left: 20px; right: 20px; bottom: 27px; }
-  .book-controls { margin-top: -8px; }
+  .book-controls { margin-top: -8px; transform: none; }
 }
