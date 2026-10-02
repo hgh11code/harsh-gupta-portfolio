@@ -769,3 +769,65 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--blue); outline-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; }
 }
+
+/* The surface is a single continuous cylinder. Only the content rotates;
+   individual leaves have no material, borders, shadows or separate rims. */
+.cylinder-body {
+  position: absolute;
+  top: 46%; left: 50%;
+  width: min(94vw, 1340px);
+  height: calc(var(--page-height) + 44px);
+  transform: translate(-50%, -50%);
+  border-radius: 50% / 7%;
+  overflow: hidden;
+  perspective: 2400px;
+  perspective-origin: 50% 50%;
+  background: var(--paper);
+  -webkit-box-reflect: below 7px linear-gradient(transparent 65%, #0003);
+}
+.cylinder-body::after {
+  content: ""; position: absolute; inset: 0; z-index: 10;
+  pointer-events: none; border-radius: inherit;
+  background: linear-gradient(90deg, #0007 0%, #0002 12%, transparent 31%, #ffffff0a 50%, transparent 69%, #0002 88%, #0007 100%);
+  box-shadow: inset 0 1px 0 #ffffff30, inset 0 -1px 0 #0002;
+}
+.cylinder-body .page-drum { top: 50%; }
+.cylinder-body .book-page,
+.cylinder-body .book-page.is-active { background: transparent; -webkit-box-reflect: unset; box-shadow: none; border: 0; }
+.cylinder-body .book-page::before,
+.cylinder-body .book-page::after,
+.cylinder-body .paper-grain { display: none; }
+.cylinder-body .book-page:not(.is-active) { filter: none; opacity: .72; }
+.cylinder-body .mini-guide { background: transparent; }
+.cylinder-body .page-scroll { scrollbar-width: none; }
+.cylinder-body .page-scroll::-webkit-scrollbar { display: none; }
+.skill-game { margin-top: -10px; }
+.game-intro { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.game-intro p { margin: 0; font-size: 12px; color: var(--ink); }
+.game-intro p span { color: var(--muted); font-size: 11px; }
+.game-intro button { min-height: 40px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 20px; cursor: pointer; font-size: 11px; }
+.game-board { position: relative; height: 310px; margin: 12px 0 0; }
+.game-board > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.game-board line { stroke: currentColor; stroke-width: 1.5px; vector-effect: non-scaling-stroke; opacity: .65; }
+.pair-models { color: var(--model); }
+.pair-data { color: var(--data); }
+.pair-platforms { color: var(--platform); }
+.pair-workflow { color: var(--workflow); }
+.game-dot { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; align-content: center; width: 90px; min-height: 48px; cursor: pointer; }
+.game-dot > span { display: grid; place-items: center; height: 25px; width: 25px; background: var(--paper); border: 1px solid currentColor; border-radius: 50%; font-size: 18px; line-height: 1; transition: transform 160ms, box-shadow 160ms; }
+.game-dot strong { font: 10px var(--font-mono); background: var(--paper); padding: 2px 3px; color: var(--ink); white-space: nowrap; }
+.game-dot:hover > span, .game-dot.is-selected > span { transform: scale(1.2); box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 15%, transparent); }
+.game-dot.is-matched > span { background: currentColor; font-size: 0; }
+.game-dot.is-matched > span::after { content: "✓"; color: var(--paper); font-size: 15px; }
+.game-status { display: flex; align-items: center; gap: 12px; min-height: 42px; border-top: 1px solid var(--line); }
+.game-status strong { white-space: nowrap; font: 11px var(--font-mono); color: var(--blue); }
+.game-status p { margin: 0; color: var(--muted); font-size: 11px; }
+@media (max-width: 760px) {
+  .cylinder-body { top: 45%; width: calc(100vw + 120px); height: calc(var(--page-height) + 20px); border-radius: 50% / 4%; perspective: 1800px; }
+  .game-board { height: 330px; margin-top: 20px; }
+  .game-dot { width: 62px; }
+  .game-dot strong { font-size: 8px; letter-spacing: -.3px; }
+  .game-dot > span { width: 28px; height: 28px; }
+  .game-intro p { font-size: 11px; }
+  .game-intro p span { font-size: 10px; }
+}

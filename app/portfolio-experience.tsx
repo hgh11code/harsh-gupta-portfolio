@@ -109,7 +109,7 @@ function MiniHarsh({ frame, message }: { frame: number; message: string }) {
         <path className="guide-arm" d={frame % 2 ? "M66 76l13-10 6-19m-4 3 4-5 5 5" : "M33 76 20 64 12 66m2-3-4 3 3 5"} />
         <path stroke="var(--blue)" d={frame === 4 ? "M37 81h24v14H37zm6 5h12" : "m43 85-4 3 4 3m14-6 4 3-4 3m-5-7-3 9"} />
       </svg>
-      <span className="guide-caption"><small>MINI HARSH / {String(frame + 1).padStart(2, "0")}</small><span>{responding ? "Let’s explore this together." : message}</span></span>
+      <span className="guide-caption"><span>{responding ? "Let’s explore this together." : message}</span></span>
     </button>
   );
 }
@@ -148,14 +148,52 @@ function SkillConstellation({ compact = false }: { compact?: boolean }) {
   );
 }
 
+const gameSkills = [
+  ["ML", "Models"], ["Python", "Data"], ["Azure", "Platforms"], ["Git", "Workflow"],
+  ["DL", "Models"], ["SQL", "Data"], ["Excel", "Data"], ["CV", "Models"],
+  ["GitHub", "Workflow"], ["Fabric", "Platforms"], ["Big Data", "Data"], ["NLP", "Models"],
+  ["LLMs", "Models"], ["PySpark", "Data"], ["Databricks", "Platforms"], ["Docker", "Workflow"],
+  ["AI Agents", "Models"], ["Analytics", "Data"], ["Statistics", "Data"], ["Bioinformatics", "Models"],
+  ["MLflow", "Workflow"], ["Cloud", "Platforms"], ["Data Viz", "Data"], ["Time Series", "Models"],
+] as const;
+
+function SkillGame() {
+  const [chosen, setChosen] = useState<number | null>(null);
+  const [pairs, setPairs] = useState<[number, number][]>([]);
+  const [message, setMessage] = useState("Pick two skills from the same colour family.");
+  const matched = new Set(pairs.flat());
+  const point = (index: number) => ({ x: 9 + (index % 4) * 27, y: 8 + Math.floor(index / 4) * 16.5 });
+  const choose = (index: number) => {
+    if (matched.has(index)) return;
+    if (chosen === index) { setChosen(null); return; }
+    if (chosen === null) { setChosen(index); setMessage(`${gameSkills[index][0]} selected. Find another ${gameSkills[index][1].toLowerCase()} skill.`); return; }
+    if (gameSkills[chosen][1] !== gameSkills[index][1]) {
+      setMessage("Different families. Try another dot of the same colour and symbol.");
+      return;
+    }
+    setPairs([...pairs, [chosen, index]]);
+    setChosen(null);
+    setMessage(pairs.length === 11 ? "All 12 connections made. Nicely connected!" : `${gameSkills[chosen][0]} + ${gameSkills[index][0]} connected.`);
+  };
+  const symbols = { Models: "○", Data: "◇", Platforms: "□", Workflow: "△" };
+  return <section className="skill-game" aria-label="Connect the skills game">
+    <div className="game-intro"><p>Skills & learning map<br /><span>Connect matching colours. Explore the stack.</span></p><button type="button" onClick={() => { setPairs([]); setChosen(null); setMessage("Pick two skills from the same colour family."); }}>Reset</button></div>
+    <div className="game-board">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">{pairs.map(([a,b]) => <line key={a} x1={point(a).x} y1={point(a).y} x2={point(b).x} y2={point(b).y} className={`pair-${gameSkills[a][1].toLowerCase()}`} />)}</svg>
+      {gameSkills.map(([label, group], index) => <button key={label} type="button" className={`game-dot pair-${group.toLowerCase()}${chosen === index ? " is-selected" : ""}${matched.has(index) ? " is-matched" : ""}`} style={{left:`${point(index).x}%`,top:`${point(index).y}%`}} aria-label={`${label}, ${group}${matched.has(index) ? ", connected" : ""}`} aria-pressed={chosen === index} aria-disabled={matched.has(index)} onClick={() => choose(index)}><span aria-hidden="true">{matched.has(index) ? "✓" : symbols[group]}</span><strong>{label}</strong></button>)}
+    </div>
+    <div className="game-status"><strong>{pairs.length} / 12</strong><p role="status">{message}</p></div>
+  </section>;
+}
+
 export default function PortfolioExperience() {
   const [activePage, setActivePage] = useState(0);
   const [turn, setTurn] = useState(0);
   const [dark, setDark] = useState(false);
+  const [hashReady, setHashReady] = useState(false);
   const shellRef = useRef<HTMLElement>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
   const lastWheel = useRef(0);
-  const hasMounted = useRef(false);
   const angle = 360 / pages.length;
 
   const goToPage = useCallback((page: number) => {
@@ -174,6 +212,7 @@ export default function PortfolioExperience() {
     const syncPageFromHash = () => {
       const pageFromHash = pages.findIndex((page) => `#${page.id}` === window.location.hash);
       if (pageFromHash >= 0) goToPage(pageFromHash);
+      setHashReady(true);
     };
     const frame = window.requestAnimationFrame(syncPageFromHash);
     window.addEventListener("hashchange", syncPageFromHash);
@@ -184,12 +223,9 @@ export default function PortfolioExperience() {
   }, [goToPage]);
 
   useEffect(() => {
-    if (!hasMounted.current) {
-      hasMounted.current = true;
-      return;
-    }
+    if (!hashReady) return;
     window.history.replaceState(null, "", `#${pages[activePage].id}`);
-  }, [activePage]);
+  }, [activePage, hashReady]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -273,9 +309,8 @@ export default function PortfolioExperience() {
 
       <section className="drum-stage" aria-label="Rotating portfolio book">
         <div className="drum-shadow" aria-hidden="true" />
+        <div className="cylinder-body">
         <div className="page-drum" style={carouselStyle}>
-          <div className="drum-rim drum-rim--top" aria-hidden="true" />
-          <div className="drum-rim drum-rim--bottom" aria-hidden="true" />
           <article id="cover" className={`book-page book-page--cover${activePage === 0 ? " is-active" : ""}`} style={{ transform: "rotateY(0deg) translateZ(var(--drum-radius))" }} aria-hidden={activePage !== 0} inert={activePage !== 0}>
             <div className="paper-grain" aria-hidden="true" />
             <SkillConstellation compact />
@@ -387,11 +422,12 @@ export default function PortfolioExperience() {
             <div className="paper-grain" aria-hidden="true" />
             <div className="page-scroll page-scroll--skills" data-page-scroll>
               <PageHeading number="06" eyebrow="Skills map" title="A connected world of data." />
-              <SkillConstellation />
+              <SkillGame />
               <div className="skill-legend" aria-label="Skill categories"><span><i className="models" />Models</span><span><i className="data" />Data</span><span><i className="platforms" />Platforms</span><span><i className="workflow" />Workflow</span></div>
             </div>
             <MiniHarsh frame={5} message="Connect the stack." />
           </article>
+        </div>
         </div>
       </section>
 
