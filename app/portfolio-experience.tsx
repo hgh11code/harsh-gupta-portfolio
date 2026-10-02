@@ -389,6 +389,14 @@ export default function PortfolioExperience() {
     <main
       className={`portfolio-shell${dark ? " theme-dark" : ""}`}
     >
+      <svg className="upright-book" viewBox="0 0 1000 800" preserveAspectRatio="none" fill="none" aria-hidden="true">
+        <path d="M3 25Q250 0 500 25Q750 0 997 25V781Q750 758 500 792Q250 758 3 781Z" fill="var(--book-cover)" />
+        <path d="M13 20Q250 0 500 24Q750 0 987 20V770Q750 749 500 783Q250 749 13 770Z" fill="var(--paper-deep)" stroke="var(--line)" />
+        <path d="M23 14Q264 -1 500 26V771Q264 739 23 758Z" fill="var(--paper)" />
+        <path d="M977 14Q736 -1 500 26V771Q736 739 977 758Z" fill="var(--paper)" />
+        <path d="M500 26V771M18 763Q261 745 495 777M982 763Q739 745 505 777M17 26V757M983 26V757" stroke="var(--line)" strokeWidth="1.5" />
+        <path d="M494 26Q478 380 494 769M506 26Q522 380 506 769" stroke="var(--line)" strokeWidth="3" opacity=".35" />
+      </svg>
       <header className="book-header">
         <button className="monogram" type="button" onClick={() => goToPage(0)} aria-label="Go to introduction">HG<span>.</span></button>
         <nav aria-label="Portfolio pages">
@@ -408,14 +416,6 @@ export default function PortfolioExperience() {
 
       <section ref={stageRef} className="drum-stage" aria-label="Rotating portfolio book" onPointerDown={startSwipe} onPointerMove={moveSwipe} onPointerUp={endSwipe} onPointerCancel={resetSwipe} onLostPointerCapture={resetSwipe}>
         <div className="drum-shadow" aria-hidden="true" />
-        <svg className="open-book-base" viewBox="0 0 1000 230" preserveAspectRatio="none" fill="none" aria-hidden="true">
-          <path d="M14 69Q252 23 500 103Q748 23 986 69L998 179Q747 137 500 221Q253 137 2 179Z" fill="var(--book-cover)" />
-          <path d="M23 55Q253 6 500 91Q747 6 977 55L984 162Q745 122 500 205Q255 122 16 162Z" fill="var(--paper-deep)" stroke="var(--line)" strokeWidth="2" />
-          <path d="M35 25Q265 0 500 74L500 190Q264 111 26 147Z" fill="var(--paper)" />
-          <path d="M965 25Q735 0 500 74L500 190Q736 111 974 147Z" fill="var(--paper)" />
-          <path d="M500 74V190M26 153Q267 118 495 196M974 153Q733 118 505 196M21 159Q267 126 493 201M979 159Q733 126 507 201" stroke="var(--line)" strokeWidth="2" />
-          <path d="M493 78Q482 144 495 191M507 78Q518 144 505 191" stroke="var(--line)" strokeWidth="3" opacity=".5" />
-        </svg>
         <div className="cylinder-body">
         <div className="page-drum" style={carouselStyle}>
           <article id="cover" className={`book-page book-page--cover${activePage === 0 ? " is-active" : ""}`} style={{ transform: "rotateY(0deg) translateZ(var(--drum-radius))" }} aria-hidden={activePage !== 0} inert={activePage !== 0}>
