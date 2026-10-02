@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, PointerEvent as ReactPointerEvent, WheelEvent } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { certificates } from "@/data/certificates";
 import { liveProjects, projects } from "@/data/projects";
@@ -265,9 +265,7 @@ export default function PortfolioExperience() {
   const [turn, setTurn] = useState(0);
   const [dark, setDark] = useState(false);
   const [hashReady, setHashReady] = useState(false);
-  const shellRef = useRef<HTMLElement>(null);
-  const dragStart = useRef<{ x: number; y: number } | null>(null);
-  const lastWheel = useRef(0);
+  const stageRef = useRef<HTMLElement>(null);
   const angle = 360 / pages.length;
 
   const goToPage = useCallback((page: number) => {
@@ -304,51 +302,38 @@ export default function PortfolioExperience() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.target as HTMLElement).closest("input, textarea, select, [contenteditable=true]")) return;
-      if (["ArrowRight", "ArrowLeft", "PageDown", "PageUp", "Home", "End"].includes(event.key)) event.preventDefault();
-      if (event.key === "ArrowRight" || event.key === "PageDown") goToPage(activePage + 1);
-      if (event.key === "ArrowLeft" || event.key === "PageUp") goToPage(activePage - 1);
-      if (event.key === "Home") goToPage(0);
-      if (event.key === "End") goToPage(pages.length - 1);
+      if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+        event.preventDefault();
+        goToPage(activePage + (event.key === "ArrowRight" ? 1 : -1));
+      }
+      const area = stageRef.current?.querySelector<HTMLElement>(".is-active [data-page-scroll]");
+      if (area && ["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End"].includes(event.key)) {
+        event.preventDefault();
+        if (event.key === "Home") area.scrollTop = 0;
+        else if (event.key === "End") area.scrollTop = area.scrollHeight;
+        else area.scrollBy({top: (event.key.endsWith("Down") ? 1 : -1) * (event.key.startsWith("Page") ? area.clientHeight * .8 : 48)});
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activePage, goToPage]);
 
-  const handleWheel = (event: WheelEvent<HTMLElement>) => {
-    const scrollArea = (event.target as HTMLElement).closest<HTMLElement>("[data-page-scroll]");
-    if (scrollArea) {
-      const canScrollDown = scrollArea.scrollTop + scrollArea.clientHeight < scrollArea.scrollHeight - 2;
-      const canScrollUp = scrollArea.scrollTop > 2;
-      if (Math.abs(event.deltaY) >= Math.abs(event.deltaX) && (canScrollDown || canScrollUp)) return;
-    }
-    const dominantDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-    if (Math.abs(dominantDelta) < 18 || Date.now() - lastWheel.current < 520) return;
-    lastWheel.current = Date.now();
-    goToPage(activePage + (dominantDelta > 0 ? 1 : -1));
-  };
-
-  const handlePointerDown = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.button !== 0 || (event.target as HTMLElement).closest("a, button")) return;
-    dragStart.current = { x: event.clientX, y: event.clientY };
-  };
-
-  const handlePointerMove = (event: ReactPointerEvent<HTMLElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
-    const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
-    shellRef.current?.style.setProperty("--pointer-x", x.toFixed(3));
-    shellRef.current?.style.setProperty("--pointer-y", y.toFixed(3));
-  };
-
-  const handlePointerUp = (event: ReactPointerEvent<HTMLElement>) => {
-    if (!dragStart.current) return;
-    const deltaX = event.clientX - dragStart.current.x;
-    const deltaY = event.clientY - dragStart.current.y;
-    dragStart.current = null;
-    if (Math.abs(deltaX) > 58 && Math.abs(deltaX) > Math.abs(deltaY) * 1.15) {
-      goToPage(activePage + (deltaX < 0 ? 1 : -1));
-    }
-  };
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    // Route wheel input explicitly to the active reader. Never turn a vertical
+    // scroll (including momentum at either boundary) into carousel navigation.
+    const scrollReader = (event: globalThis.WheelEvent) => {
+      if (event.ctrlKey) return; // Preserve browser pinch-to-zoom.
+      const area = stage.querySelector<HTMLElement>(".is-active [data-page-scroll]");
+      if (!area || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      event.preventDefault();
+      const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? area.clientHeight : 1;
+      area.scrollTop += event.deltaY * scale;
+    };
+    stage.addEventListener("wheel", scrollReader, {passive:false});
+    return () => stage.removeEventListener("wheel", scrollReader);
+  }, []);
 
   const carouselStyle = {
     transform: `translateZ(calc(var(--drum-radius) * -1)) rotateY(${-turn * angle}deg)`,
@@ -356,13 +341,7 @@ export default function PortfolioExperience() {
 
   return (
     <main
-      ref={shellRef}
       className={`portfolio-shell${dark ? " theme-dark" : ""}`}
-      onWheel={handleWheel}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={() => { dragStart.current = null; }}
     >
       <header className="book-header">
         <button className="monogram" type="button" onClick={() => goToPage(0)} aria-label="Go to introduction">HG<span>.</span></button>
@@ -381,7 +360,7 @@ export default function PortfolioExperience() {
 
       <p className="sr-only" aria-live="polite">Now viewing {pages[activePage].label}</p>
 
-      <section className="drum-stage" aria-label="Rotating portfolio book">
+      <section ref={stageRef} className="drum-stage" aria-label="Rotating portfolio book">
         <div className="drum-shadow" aria-hidden="true" />
         <div className="cylinder-body">
         <div className="page-drum" style={carouselStyle}>
@@ -506,15 +485,14 @@ export default function PortfolioExperience() {
       </section>
 
       <div className="book-controls">
-        <button type="button" onClick={() => goToPage(activePage - 1)} aria-label={`Previous page: ${pages[(activePage - 1 + pages.length) % pages.length].label}`}><ArrowIcon direction="left" /><span>Previous</span></button>
+        <label className="rotation-control"><span>Drag to explore <strong>{String(activePage+1).padStart(2,"0")} / 07 · {pages[activePage].label}</strong></span><input type="range" min="0" max={pages.length-1} step="1" value={activePage} onChange={event=>goToPage(Number(event.target.value))} aria-label="Rotate portfolio pages" aria-valuetext={`${activePage+1} of ${pages.length}: ${pages[activePage].label}`} /></label>
         <div className="progress-dots" aria-label="Page progress">
           {pages.map((page, index) => <button key={page.id} type="button" className={index === activePage ? "is-current" : ""} onClick={() => goToPage(index)} aria-label={`Go to ${page.label}`} />)}
         </div>
-        <button type="button" onClick={() => goToPage(activePage + 1)} aria-label={`Next page: ${pages[(activePage + 1) % pages.length].label}`}><span>Next</span><ArrowIcon direction="right" /></button>
       </div>
 
       <footer className="book-footer">
-        <span>Drag · swipe · scroll · arrow keys</span>
+        <span>Scroll to read · Drag the slider to rotate</span>
         <span className="footer-credit">Designed with Harsh · Built with Codex</span>
         <div className="footer-links" aria-label="Contact links">
           <a href="mailto:gupta059harsh@gmail.com" aria-label="Email Harsh Gupta"><MailIcon /></a>
