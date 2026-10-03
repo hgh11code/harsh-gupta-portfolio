@@ -1,7 +1,7 @@
 "use client";
 
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { certificates } from "@/data/certificates";
 import { liveProjects, projects } from "@/data/projects";
 import { connectionPoints, connectionsIntersect } from "@/lib/skill-connections";
@@ -263,24 +263,53 @@ function SkillGame() {
 
 export default function PortfolioExperience() {
   const [activePage, setActivePage] = useState(0);
-  const [direction, setDirection] = useState(1);
   const activeRef = useRef(0);
+  const animations = useRef<Animation[]>([]);
+  const motion = useRef<{from:number;direction:number;offset:number} | null>(null);
   const [dark, setDark] = useState(false);
   const [hashReady, setHashReady] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
-  const swipe = useRef<{id:number;x:number;y:number;axis:"x"|"y"|null;dx:number;width:number} | null>(null);
+  const swipe = useRef<{id:number;x:number;y:number;axis:"x"|"y"|null;dx:number;width:number;at:number;lastX:number;velocity:number} | null>(null);
   const wheelGesture = useRef({at:0,sum:0,turned:false});
-  const angle = 360 / pages.length;
+  const suppressSwipeClick = useRef(false);
 
-  const goToPage = useCallback((page: number) => {
+  const goToPage = useCallback((page: number, offset = 0) => {
     const next = ((page % pages.length) + pages.length) % pages.length;
+    if (next === activeRef.current) return;
     let delta = next - activeRef.current;
     if (delta > pages.length / 2) delta -= pages.length;
     if (delta < -pages.length / 2) delta += pages.length;
-    setDirection(delta < 0 ? -1 : 1);
+    motion.current = {from:activeRef.current,direction:delta < 0 ? -1 : 1,offset};
     activeRef.current = next;
     setActivePage(next);
   }, []);
+
+  // Animate only while changing chapters; settled readers remain untransformed
+  // so native touch/wheel scrolling works reliably across browsers.
+  useLayoutEffect(() => {
+    animations.current.forEach(animation => animation.cancel());
+    animations.current = [];
+    const transition = motion.current;
+    motion.current = null;
+    if (!transition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const outgoing = document.getElementById(pages[transition.from].id);
+    const incoming = document.getElementById(pages[activePage].id);
+    if (!outgoing || !incoming) return;
+    const width = incoming.clientWidth;
+    const {direction:sign,offset} = transition;
+    const timing = {duration:480,easing:"cubic-bezier(.22, 1, .36, 1)"};
+    animations.current = [
+      outgoing.animate([
+        {visibility:"visible",transform:`translateX(${offset}px)`,opacity:1},
+        {visibility:"visible",transform:`translateX(${-sign * width}px)`,opacity:.65},
+      ],timing),
+      incoming.animate([
+        {transform:`translateX(${sign * width + offset}px)`,opacity:.65},
+        {transform:"none",opacity:1},
+      ],timing),
+    ];
+    return () => animations.current.forEach(animation => animation.cancel());
+  }, [activePage]);
 
   useEffect(() => {
     const syncPageFromHash = () => {
@@ -353,12 +382,14 @@ export default function PortfolioExperience() {
   const resetSwipe = () => {
     swipe.current=null;
     stageRef.current?.classList.remove("is-dragging");
-    stageRef.current?.style.setProperty("--drag-angle","0deg");
+    stageRef.current?.style.setProperty("--drag-offset","0px");
   };
   const startSwipe = (event:ReactPointerEvent<HTMLElement>) => {
-    if (!event.isPrimary || event.button !== 0 || (event.target as HTMLElement).closest("a,button,input,.skill-game")) return;
+    suppressSwipeClick.current=false;
+    if (!event.isPrimary || event.button !== 0 || (event.target as HTMLElement).closest("button,input,select,.skill-game")) return;
     const width=event.currentTarget.querySelector(".book-page.is-active")?.getBoundingClientRect().width || 390;
-    swipe.current={id:event.pointerId,x:event.clientX,y:event.clientY,axis:null,dx:0,width};
+    animations.current.forEach(animation => animation.cancel());
+    swipe.current={id:event.pointerId,x:event.clientX,y:event.clientY,axis:null,dx:0,width,at:performance.now(),lastX:event.clientX,velocity:0};
   };
   const moveSwipe = (event:ReactPointerEvent<HTMLElement>) => {
     const current=swipe.current;
@@ -366,23 +397,25 @@ export default function PortfolioExperience() {
     const dx=event.clientX-current.x, dy=event.clientY-current.y;
     current.axis ??= gestureAxis(dx,dy);
     if (current.axis !== "x") return;
+    suppressSwipeClick.current=true;
     if (!event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.setPointerCapture(event.pointerId);
     current.dx=dx;
+    const now=performance.now();
+    current.velocity=(event.clientX-current.lastX)/Math.max(1,now-current.at);
+    current.at=now;
+    current.lastX=event.clientX;
     stageRef.current?.classList.add("is-dragging");
-    stageRef.current?.style.setProperty("--drag-angle",`${Math.max(-angle,Math.min(angle,dx/current.width*angle))}deg`);
+    stageRef.current?.style.setProperty("--drag-offset",`${Math.max(-current.width*.8,Math.min(current.width*.8,dx))}px`);
   };
   const endSwipe = (event:ReactPointerEvent<HTMLElement>) => {
     const current=swipe.current;
-    const step=current?.axis === "x" ? swipeStep(current.dx,current.width) : 0;
+    const velocity=current && performance.now()-current.at < 100 ? current.velocity : 0;
+    const step=current?.axis === "x" ? swipeStep(current.dx,current.width,velocity) : 0;
+    const offset=current ? Math.max(-current.width*.8,Math.min(current.width*.8,current.dx)) : 0;
     resetSwipe();
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    if (step) goToPage(activePage+step);
+    if (step) goToPage(activePage+step,offset);
   };
-
-  const carouselStyle = {
-    "--arrival-angle": `${direction * 12}deg`,
-    "--arrival-offset": `${direction * 32}px`,
-  } as CSSProperties;
 
   return (
     <main
@@ -414,10 +447,10 @@ export default function PortfolioExperience() {
 
       <p className="sr-only" aria-live="polite">Now viewing {pages[activePage].label}</p>
 
-      <section ref={stageRef} className="drum-stage" aria-label="Rotating portfolio book" onPointerDown={startSwipe} onPointerMove={moveSwipe} onPointerUp={endSwipe} onPointerCancel={resetSwipe} onLostPointerCapture={resetSwipe}>
+      <section ref={stageRef} className="drum-stage" aria-label="Rotating portfolio book" onPointerDown={startSwipe} onPointerMove={moveSwipe} onPointerUp={endSwipe} onPointerCancel={resetSwipe} onLostPointerCapture={resetSwipe} onDragStart={event=>event.preventDefault()} onClickCapture={event=>{if(suppressSwipeClick.current && event.detail!==0){event.preventDefault();event.stopPropagation();suppressSwipeClick.current=false;}}}>
         <div className="drum-shadow" aria-hidden="true" />
         <div className="cylinder-body">
-        <div className="page-drum" style={carouselStyle}>
+        <div className="page-drum">
           <article id="cover" className={`book-page book-page--cover${activePage === 0 ? " is-active" : ""}`} aria-hidden={activePage !== 0} inert={activePage !== 0}>
             <div className="paper-grain" aria-hidden="true" />
             <div className="cover-reader" data-page-scroll>

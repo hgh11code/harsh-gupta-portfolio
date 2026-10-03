@@ -5,3 +5,6 @@ test('vertical and diagonal reading gestures do not become page turns',()=>{asse
 test('deliberate horizontal drag locks to rotation',()=>assert.equal(gestureAxis(-60,12),'x'));
 test('small movement does not trigger a swipe',()=>{assert.equal(gestureAxis(4,3),null);assert.equal(swipeStep(15,390),0);});
 test('swipes work in both directions on phone and desktop',()=>{assert.equal(swipeStep(-65,390),1);assert.equal(swipeStep(100,740),-1);});
+test('short deliberate flicks navigate in either direction',()=>{assert.equal(swipeStep(-28,840,-.7),1);assert.equal(swipeStep(28,390,.6),-1);});
+test('slow short drags and tiny fast movements snap back',()=>{assert.equal(swipeStep(28,840,.1),0);assert.equal(swipeStep(9,390,1),0);});
+test('reversing a short swipe does not trigger a flick',()=>assert.equal(swipeStep(-28,840,.7),0));

@@ -4,7 +4,8 @@ export function gestureAxis(dx: number, dy: number): "x" | "y" | null {
   return null;
 }
 
-export function swipeStep(dx: number, width: number): number {
+export function swipeStep(dx: number, width: number, velocity = 0): number {
   const threshold = Math.max(36, Math.min(80, width * .13));
-  return Math.abs(dx) >= threshold ? (dx < 0 ? 1 : -1) : 0;
+  const flick = Math.abs(dx) >= 24 && Math.abs(velocity) >= .45 && Math.sign(dx) === Math.sign(velocity);
+  return Math.abs(dx) >= threshold || flick ? (dx < 0 ? 1 : -1) : 0;
 }
