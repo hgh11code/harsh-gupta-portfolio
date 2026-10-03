@@ -6,6 +6,7 @@ import { certificates } from "@/data/certificates";
 import { liveProjects, projects } from "@/data/projects";
 import { connectionPoints, connectionsIntersect } from "@/lib/skill-connections";
 import { gestureAxis, swipeStep } from "@/lib/portfolio-gestures";
+import { bindTouchNavigation } from "@/lib/touch-navigation";
 
 const profileLinks = [
   { label: "LinkedIn", href: "https://www.linkedin.com/in/harsh-059-gupta" },
@@ -379,12 +380,33 @@ export default function PortfolioExperience() {
     return () => stage.removeEventListener("wheel", scrollReader);
   }, [activePage,goToPage]);
 
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    return bindTouchNavigation(stage, {
+      canStart: target => target instanceof Element && !target.closest(".game-dot,.game-actions,input,select,textarea"),
+      width: () => stage.querySelector<HTMLElement>(".book-page.is-active")?.clientWidth || 390,
+      start: () => { suppressSwipeClick.current=false; animations.current.forEach(animation=>animation.cancel()); },
+      move: offset => {
+        suppressSwipeClick.current=true;
+        stage.classList.add("is-dragging");
+        stage.style.setProperty("--drag-offset",`${offset}px`);
+      },
+      finish: (step,offset) => {
+        stage.classList.remove("is-dragging");
+        stage.style.setProperty("--drag-offset","0px");
+        if (step) { suppressSwipeClick.current=true; goToPage(activeRef.current+step,offset); }
+      },
+    });
+  }, [goToPage]);
+
   const resetSwipe = () => {
     swipe.current=null;
     stageRef.current?.classList.remove("is-dragging");
     stageRef.current?.style.setProperty("--drag-offset","0px");
   };
   const startSwipe = (event:ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType === "touch") return;
     suppressSwipeClick.current=false;
     if (!event.isPrimary || event.button !== 0 || (event.target as HTMLElement).closest("button,input,select,.skill-game")) return;
     const width=event.currentTarget.querySelector(".book-page.is-active")?.getBoundingClientRect().width || 390;
@@ -392,6 +414,7 @@ export default function PortfolioExperience() {
     swipe.current={id:event.pointerId,x:event.clientX,y:event.clientY,axis:null,dx:0,width,at:performance.now(),lastX:event.clientX,velocity:0};
   };
   const moveSwipe = (event:ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType === "touch") return;
     const current=swipe.current;
     if (!current || current.id !== event.pointerId) return;
     const dx=event.clientX-current.x, dy=event.clientY-current.y;
@@ -408,6 +431,7 @@ export default function PortfolioExperience() {
     stageRef.current?.style.setProperty("--drag-offset",`${Math.max(-current.width*.8,Math.min(current.width*.8,dx))}px`);
   };
   const endSwipe = (event:ReactPointerEvent<HTMLElement>) => {
+    if (event.pointerType === "touch") return;
     const current=swipe.current;
     const velocity=current && performance.now()-current.at < 100 ? current.velocity : 0;
     const step=current?.axis === "x" ? swipeStep(current.dx,current.width,velocity) : 0;
@@ -447,7 +471,7 @@ export default function PortfolioExperience() {
 
       <p className="sr-only" aria-live="polite">Now viewing {pages[activePage].label}</p>
 
-      <section ref={stageRef} className="drum-stage" aria-label="Rotating portfolio book" onPointerDown={startSwipe} onPointerMove={moveSwipe} onPointerUp={endSwipe} onPointerCancel={resetSwipe} onLostPointerCapture={resetSwipe} onDragStart={event=>event.preventDefault()} onClickCapture={event=>{if(suppressSwipeClick.current && event.detail!==0){event.preventDefault();event.stopPropagation();suppressSwipeClick.current=false;}}}>
+      <section ref={stageRef} className="drum-stage" aria-label="Rotating portfolio book" onPointerDown={startSwipe} onPointerMove={moveSwipe} onPointerUp={endSwipe} onPointerCancel={event=>{if(event.pointerType!=="touch")resetSwipe();}} onLostPointerCapture={event=>{if(event.pointerType!=="touch" && event.target===event.currentTarget)resetSwipe();}} onDragStart={event=>event.preventDefault()} onClickCapture={event=>{if(suppressSwipeClick.current && event.detail!==0){event.preventDefault();event.stopPropagation();suppressSwipeClick.current=false;}}}>
         <div className="drum-shadow" aria-hidden="true" />
         <div className="cylinder-body">
         <div className="page-drum">
@@ -574,13 +598,12 @@ export default function PortfolioExperience() {
       </section>
 
       <div className="book-controls">
-        <button className="chapter-step" type="button" onClick={()=>goToPage(activePage-1)} aria-label={`Previous chapter: ${pages[(activePage+pages.length-1)%pages.length].label}`}><ArrowIcon direction="left" /><span>Previous</span></button>
         <div className="chapter-position"><span>{String(activePage+1).padStart(2,"0")} / 07</span><strong>{pages[activePage].label}</strong>
         <div className="progress-dots" aria-label="Page progress">
           {pages.map((page, index) => <button key={page.id} type="button" className={index === activePage ? "is-current" : ""} onClick={() => goToPage(index)} aria-label={`Go to ${page.label}`} />)}
         </div>
         </div>
-        <button className="chapter-step" type="button" onClick={()=>goToPage(activePage+1)} aria-label={`Next chapter: ${pages[(activePage+1)%pages.length].label}`}><span>Next chapter</span><ArrowIcon direction="right" /></button>
+        <p className="touch-navigation-hint">Swipe sideways to turn · Scroll to read</p>
       </div>
 
       <footer className="book-footer">
