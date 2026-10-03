@@ -263,7 +263,8 @@ function SkillGame() {
 
 export default function PortfolioExperience() {
   const [activePage, setActivePage] = useState(0);
-  const [turn, setTurn] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const activeRef = useRef(0);
   const [dark, setDark] = useState(false);
   const [hashReady, setHashReady] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
@@ -273,13 +274,11 @@ export default function PortfolioExperience() {
 
   const goToPage = useCallback((page: number) => {
     const next = ((page % pages.length) + pages.length) % pages.length;
-    setTurn((previous) => {
-      const current = ((previous % pages.length) + pages.length) % pages.length;
-      let delta = next - current;
-      if (delta > pages.length / 2) delta -= pages.length;
-      if (delta < -pages.length / 2) delta += pages.length;
-      return previous + delta;
-    });
+    let delta = next - activeRef.current;
+    if (delta > pages.length / 2) delta -= pages.length;
+    if (delta < -pages.length / 2) delta += pages.length;
+    setDirection(delta < 0 ? -1 : 1);
+    activeRef.current = next;
     setActivePage(next);
   }, []);
 
@@ -324,8 +323,7 @@ export default function PortfolioExperience() {
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
-    // Route wheel input explicitly to the active reader. Never turn a vertical
-    // scroll (including momentum at either boundary) into carousel navigation.
+    // Native scrolling owns vertical input inside the reader, including inertia.
     const scrollReader = (event: globalThis.WheelEvent) => {
       if (event.ctrlKey) return; // Preserve browser pinch-to-zoom.
       const area = stage.querySelector<HTMLElement>(".is-active [data-page-scroll]");
@@ -343,7 +341,7 @@ export default function PortfolioExperience() {
         }
         return;
       }
-      if (!area) return;
+      if (!area || area.contains(event.target as Node)) return;
       event.preventDefault();
       const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? area.clientHeight : 1;
       area.scrollTop += event.deltaY * scale;
@@ -361,7 +359,6 @@ export default function PortfolioExperience() {
     if (!event.isPrimary || event.button !== 0 || (event.target as HTMLElement).closest("a,button,input,.skill-game")) return;
     const width=event.currentTarget.querySelector(".book-page.is-active")?.getBoundingClientRect().width || 390;
     swipe.current={id:event.pointerId,x:event.clientX,y:event.clientY,axis:null,dx:0,width};
-    event.currentTarget.setPointerCapture(event.pointerId);
   };
   const moveSwipe = (event:ReactPointerEvent<HTMLElement>) => {
     const current=swipe.current;
@@ -369,6 +366,7 @@ export default function PortfolioExperience() {
     const dx=event.clientX-current.x, dy=event.clientY-current.y;
     current.axis ??= gestureAxis(dx,dy);
     if (current.axis !== "x") return;
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.setPointerCapture(event.pointerId);
     current.dx=dx;
     stageRef.current?.classList.add("is-dragging");
     stageRef.current?.style.setProperty("--drag-angle",`${Math.max(-angle,Math.min(angle,dx/current.width*angle))}deg`);
@@ -382,7 +380,8 @@ export default function PortfolioExperience() {
   };
 
   const carouselStyle = {
-    transform: `translateZ(calc(var(--drum-radius) * -1)) rotateY(calc(${-turn * angle}deg + var(--drag-angle, 0deg)))`,
+    "--arrival-angle": `${direction * 12}deg`,
+    "--arrival-offset": `${direction * 32}px`,
   } as CSSProperties;
 
   return (
@@ -401,11 +400,12 @@ export default function PortfolioExperience() {
         <button className="monogram" type="button" onClick={() => goToPage(0)} aria-label="Go to introduction">HG<span>.</span></button>
         <nav aria-label="Portfolio pages">
           {pages.map((page, index) => (
-            <button key={page.id} type="button" className={index === activePage ? "is-current" : ""} onClick={() => goToPage(index)}>
+            <button key={page.id} type="button" aria-current={index === activePage ? "page" : undefined} className={index === activePage ? "is-current" : ""} onClick={() => goToPage(index)}>
               <span>{String(index + 1).padStart(2, "0")}</span>{page.label}
             </button>
           ))}
         </nav>
+        <label className="mobile-chapters"><span className="sr-only">Choose a chapter</span><select value={activePage} onChange={event => goToPage(Number(event.target.value))}>{pages.map((page,index)=><option key={page.id} value={index}>{String(index+1).padStart(2,"0")} / {page.label}</option>)}</select></label>
         <div className="page-count" aria-label={`Page ${activePage + 1} of ${pages.length}`}>
           <button className="theme-toggle" onClick={() => setDark(!dark)} aria-label={`Switch to ${dark ? "light" : "dark"} pages`} type="button">{dark ? "☀" : "☾"}</button>
           <strong>{String(activePage + 1).padStart(2, "0")}</strong><span>/ {String(pages.length).padStart(2, "0")}</span>
@@ -418,8 +418,9 @@ export default function PortfolioExperience() {
         <div className="drum-shadow" aria-hidden="true" />
         <div className="cylinder-body">
         <div className="page-drum" style={carouselStyle}>
-          <article id="cover" className={`book-page book-page--cover${activePage === 0 ? " is-active" : ""}`} style={{ transform: "rotateY(0deg) translateZ(var(--drum-radius))" }} aria-hidden={activePage !== 0} inert={activePage !== 0}>
+          <article id="cover" className={`book-page book-page--cover${activePage === 0 ? " is-active" : ""}`} aria-hidden={activePage !== 0} inert={activePage !== 0}>
             <div className="paper-grain" aria-hidden="true" />
+            <div className="cover-reader" data-page-scroll>
             <SkillConstellation compact />
             <div className="cover-copy">
               <p className="eyebrow">Satna, Madhya Pradesh, India</p>
@@ -432,10 +433,11 @@ export default function PortfolioExperience() {
                 ))}
               </div>
             </div>
+            </div>
             <div className="cover-index" aria-hidden="true"><span>Portfolio</span><strong>2026</strong></div>
           </article>
 
-          <article id="about" className={`book-page${activePage === 1 ? " is-active" : ""}`} style={{ transform: `rotateY(${angle}deg) translateZ(var(--drum-radius))` }} aria-hidden={activePage !== 1} inert={activePage !== 1}>
+          <article id="about" className={`book-page${activePage === 1 ? " is-active" : ""}`} aria-hidden={activePage !== 1} inert={activePage !== 1}>
             <div className="paper-grain" aria-hidden="true" />
             <div className="page-scroll" data-page-scroll>
               <PageHeading number="01" eyebrow="Profile" title="Curiosity, translated into useful data work." />
@@ -452,7 +454,7 @@ export default function PortfolioExperience() {
             <MiniHarsh frame={0} message="Follow the curiosity." />
           </article>
 
-          <article id="experience" className={`book-page${activePage === 2 ? " is-active" : ""}`} style={{ transform: `rotateY(${angle * 2}deg) translateZ(var(--drum-radius))` }} aria-hidden={activePage !== 2} inert={activePage !== 2}>
+          <article id="experience" className={`book-page${activePage === 2 ? " is-active" : ""}`} aria-hidden={activePage !== 2} inert={activePage !== 2}>
             <div className="paper-grain" aria-hidden="true" />
             <div className="page-scroll" data-page-scroll>
               <PageHeading number="02" eyebrow="Experience" title="Research ideas, tested against working prototypes." />
@@ -465,7 +467,7 @@ export default function PortfolioExperience() {
             <MiniHarsh frame={1} message="Test. Study. Prototype." />
           </article>
 
-          <article id="education" className={`book-page${activePage === 3 ? " is-active" : ""}`} style={{ transform: `rotateY(${angle * 3}deg) translateZ(var(--drum-radius))` }} aria-hidden={activePage !== 3} inert={activePage !== 3}>
+          <article id="education" className={`book-page${activePage === 3 ? " is-active" : ""}`} aria-hidden={activePage !== 3} inert={activePage !== 3}>
             <div className="paper-grain" aria-hidden="true" />
             <div className="page-scroll" data-page-scroll>
               <PageHeading number="03" eyebrow="Education" title="A multidisciplinary route into data and computing." />
@@ -478,7 +480,7 @@ export default function PortfolioExperience() {
             <MiniHarsh frame={2} message="Always learning." />
           </article>
 
-          <article id="projects" className={`book-page${activePage === 4 ? " is-active" : ""}`} style={{ transform: `rotateY(${angle * 4}deg) translateZ(var(--drum-radius))` }} aria-hidden={activePage !== 4} inert={activePage !== 4}>
+          <article id="projects" className={`book-page${activePage === 4 ? " is-active" : ""}`} aria-hidden={activePage !== 4} inert={activePage !== 4}>
             <div className="paper-grain" aria-hidden="true" />
             <div className="page-scroll" data-page-scroll>
               <PageHeading number="04" eyebrow="Projects" title="Things built to make the learning concrete." />
@@ -504,7 +506,7 @@ export default function PortfolioExperience() {
             <MiniHarsh frame={3} message="Ideas into systems." />
           </article>
 
-          <article id="certificates" className={`book-page${activePage === 5 ? " is-active" : ""}`} style={{ transform: `rotateY(${angle * 5}deg) translateZ(var(--drum-radius))` }} aria-hidden={activePage !== 5} inert={activePage !== 5}>
+          <article id="certificates" className={`book-page${activePage === 5 ? " is-active" : ""}`} aria-hidden={activePage !== 5} inert={activePage !== 5}>
             <div className="paper-grain" aria-hidden="true" />
             <div className="page-scroll" data-page-scroll>
               <PageHeading number="05" eyebrow="Certificates" title="A record of deliberate practice." />
@@ -525,7 +527,7 @@ export default function PortfolioExperience() {
             <MiniHarsh frame={4} message="Proof of the practice." />
           </article>
 
-          <article id="skills" className={`book-page${activePage === 6 ? " is-active" : ""}`} style={{ transform: `rotateY(${angle * 6}deg) translateZ(var(--drum-radius))` }} aria-hidden={activePage !== 6} inert={activePage !== 6}>
+          <article id="skills" className={`book-page${activePage === 6 ? " is-active" : ""}`} aria-hidden={activePage !== 6} inert={activePage !== 6}>
             <div className="paper-grain" aria-hidden="true" />
             <div className="page-scroll page-scroll--skills" data-page-scroll>
               <PageHeading number="06" eyebrow="Skills map" title="A connected world of data." />
@@ -539,10 +541,13 @@ export default function PortfolioExperience() {
       </section>
 
       <div className="book-controls">
-        <p className="swipe-hint">Swipe to turn <span>·</span> Scroll to read <strong>{pages[activePage].label}</strong></p>
+        <button className="chapter-step" type="button" onClick={()=>goToPage(activePage-1)} aria-label={`Previous chapter: ${pages[(activePage+pages.length-1)%pages.length].label}`}><ArrowIcon direction="left" /><span>Previous</span></button>
+        <div className="chapter-position"><span>{String(activePage+1).padStart(2,"0")} / 07</span><strong>{pages[activePage].label}</strong>
         <div className="progress-dots" aria-label="Page progress">
           {pages.map((page, index) => <button key={page.id} type="button" className={index === activePage ? "is-current" : ""} onClick={() => goToPage(index)} aria-label={`Go to ${page.label}`} />)}
         </div>
+        </div>
+        <button className="chapter-step" type="button" onClick={()=>goToPage(activePage+1)} aria-label={`Next chapter: ${pages[(activePage+1)%pages.length].label}`}><span>Next chapter</span><ArrowIcon direction="right" /></button>
       </div>
 
       <footer className="book-footer">
